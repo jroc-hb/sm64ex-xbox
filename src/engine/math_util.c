@@ -7,6 +7,10 @@
 
 #include "trig_tables.inc.c"
 
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
+
 // Variables for a spline curve animation (used for the flight path in the grand star cutscene)
 Vec4s *gSplineKeyframe;
 float gSplineKeyframeFraction;

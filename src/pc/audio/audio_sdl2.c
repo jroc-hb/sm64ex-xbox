@@ -1,6 +1,10 @@
 #ifdef AAPI_SDL2
 
-#include <SDL2/SDL.h>
+#if defined(TARGET_XBOX) || defined(__MINGW32__)
+#include "SDL.h"
+#else
+#include "SDL2/SDL.h"
+#endif
 
 #include "audio_api.h"
 

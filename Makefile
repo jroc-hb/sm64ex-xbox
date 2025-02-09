@@ -59,10 +59,16 @@ NO_LDIV ?= 0
 
 # Backend selection
 
-# Renderers: GL, GL_LEGACY, D3D11, D3D12
+# Renderers: GL, GL_LEGACY, D3D11, D3D12, XSM64 (Xbox)
 RENDER_API ?= GL
-# Window managers: SDL1, SDL2, DXGI (forced if D3D11 or D3D12 in RENDER_API)
+ifdef TARGET_XBOX
+RENDER_API = XSM64
+endif
+# Window managers: SDL1, SDL2, DXGI (forced if D3D11 or D3D12 in RENDER_API), XSM64 (Xbox)
 WINDOW_API ?= SDL2
+ifdef TARGET_XBOX
+WINDOW_API := XSM64
+endif
 # Audio backends: SDL1, SDL2
 AUDIO_API ?= SDL2
 # Controller backends (can have multiple, space separated): SDL2, SDL1
@@ -77,6 +83,13 @@ BASEPACK ?= base.zip
 
 WINDOWS_BUILD ?= 0
 
+# Xbox nxdk setup
+ifeq ($(TARGET_XBOX), 1)
+  # No further detection needed
+  XBE_TITLE = sm64ex
+  NXDK_SDL = y
+endif
+
 # Attempt to detect OS
 
 ifeq ($(OS),Windows_NT)
@@ -89,9 +102,11 @@ else
   endif
 endif
 
-ifeq ($(TARGET_WEB),0)
-  ifeq ($(HOST_OS),Windows)
-    WINDOWS_BUILD := 1
+ifeq ($(TARGET_XBOX), 0)
+  ifeq ($(TARGET_WEB),0)
+    ifeq ($(HOST_OS),Windows)
+      WINDOWS_BUILD := 1
+    endif
   endif
 endif
 
@@ -163,7 +178,12 @@ endif
 
 TARGET := sm64.$(VERSION)
 VERSION_CFLAGS := -D$(VERSION_DEF) -D_LANGUAGE_C
-VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
+ifeq ($(TARGET_XBOX),1)
+  # Not supported by clang assembler
+  VERSION_ASFLAGS :=
+else
+  VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
+endif
 
 # Stuff for showing the git hash in the intro on nightly builds
 # From https://stackoverflow.com/questions/44038428/include-git-commit-hash-and-or-branch-name-in-c-c-source
@@ -222,7 +242,12 @@ ifeq ($(OSX_BUILD),1) # Modify GFX & SDL2 for OSX GL
      VERSION_CFLAGS += -DOSX_BUILD
 endif
 
-VERSION_ASFLAGS := --defsym AVOID_UB=1
+ifeq ($(TARGET_XBOX),1)
+  # Not supported by clang assembler
+  VERSION_ASFLAGS :=
+else
+  VERSION_ASFLAGS := --defsym AVOID_UB=1
+endif
 COMPARE := 0
 
 ifeq ($(TARGET_WEB),1)
@@ -242,6 +267,15 @@ ifneq (,$(filter $(RENDER_API),D3D11 D3D12))
 else
   ifeq ($(WINDOW_API),DXGI)
     $(error DXGI can only be used with DirectX renderers)
+  endif
+endif
+
+ifeq ($(TARGET_XBOX),1)
+  ifneq ($(RENDER_API), XSM64)
+    $(error Xbox requires XSM64 render API)
+  endif
+  ifneq ($(WINDOW_API), XSM64)
+    $(error Xbox requires XSM64 window API)
   endif
 endif
 
@@ -292,7 +326,8 @@ EXE := $(BUILD_DIR)/$(TARGET).html
 	else
 	ifeq ($(WINDOWS_BUILD),1)
 		EXE := $(BUILD_DIR)/$(TARGET).exe
-
+    else ifeq ($(TARGET_XBOX),1)
+      EXE := main.exe
 		else # Linux builds/binary namer
 		ifeq ($(TARGET_RPI),1)
 			EXE := $(BUILD_DIR)/$(TARGET).arm
@@ -454,9 +489,18 @@ DEP_FILES := $(O_FILES:.o=.d) $(ULTRA_O_FILES:.o=.d) $(GODDARD_O_FILES:.o=.d) $(
 # Segment elf files
 SEG_FILES := $(SEGMENT_ELF_FILES) $(ACTOR_ELF_FILES) $(LEVEL_ELF_FILES)
 
+ifeq ($(TARGET_XBOX), 1)
+  include $(NXDK_DIR)/Makefile
+  OBJS += $(O_FILES) $(MIO0_FILES:.mio0=.o) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES)
+endif
+
 ##################### Compiler Options #######################
 INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
 ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
+
+ifeq ($(TARGET_XBOX),1)
+  CC_CHECK := clang
+endif
 
 # Huge deleted N64 section was here
 
@@ -499,6 +543,14 @@ else # Linux & other builds
   CPP := $(CROSS)cpp -P
   OBJCOPY := $(CROSS)objcopy
   OBJDUMP := $(CROSS)objdump
+endif
+
+ifeq ($(TARGET_XBOX),1)
+  LD  = lld -flavor link
+  LIB = llvm-lib
+  AS  = clang
+  CC  = clang
+  CXX = clang++
 endif
 
 PYTHON := python3
@@ -562,13 +614,31 @@ ifneq ($(SDL1_USED)$(SDL2_USED),00)
     OSX_PREFIX := $(shell $(SDLCONFIG) --prefix)
     BACKEND_CFLAGS += -I$(OSX_PREFIX)/include $(shell $(SDLCONFIG) --cflags)
   else
+    ifndef TARGET_XBOX
     BACKEND_CFLAGS += $(shell $(SDLCONFIG) --cflags)
+    endif
   endif
   ifeq ($(WINDOWS_BUILD),1)
     BACKEND_LDFLAGS += $(shell $(SDLCONFIG) --static-libs) -lsetupapi -luser32 -limm32 -lole32 -loleaut32 -lshell32 -lwinmm -lversion
   else
+    ifndef TARGET_XBOX
     BACKEND_LDFLAGS += $(shell $(SDLCONFIG) --libs)
+    endif
   endif
+endif
+
+ifeq ($(TARGET_XBOX),1)
+  LEGACY_NXDK_CFLAGS  = -target i386-pc-win32 -march=pentium3 \
+        -ffreestanding -nostdlib -fno-builtin \
+        -I$(NXDK_DIR)/lib -I$(NXDK_DIR)/lib/xboxrt/libc_extensions \
+        -I$(NXDK_DIR)/lib/hal \
+        -isystem $(NXDK_DIR)/lib/pdclib/include \
+        -I$(NXDK_DIR)/lib/pdclib/platform/xbox/include \
+        -I$(NXDK_DIR)/lib/winapi \
+        -I$(NXDK_DIR)/lib/xboxrt/vcruntime \
+        -Wno-ignored-attributes -DNXDK -D__STDC__=1
+  PLATFORM_CFLAGS := -DTARGET_XBOX -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function $(NXDK_CFLAGS) ${LEGACY_NXDK_CFLAGS}
+  PLATFORM_LDFLAGS := -entry:WinMainCRTStartup
 endif
 
 ifeq ($(WINDOWS_BUILD),1)
@@ -583,6 +653,11 @@ else ifeq ($(TARGET_WEB),1)
 else
   CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(BACKEND_CFLAGS) $(PLATFORM_CFLAGS) $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security $(VERSION_CFLAGS) $(GRUCODE_CFLAGS)
   CFLAGS := $(OPT_FLAGS) $(PLATFORM_CFLAGS) $(INCLUDE_CFLAGS) $(BACKEND_CFLAGS) $(VERSION_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv
+endif
+
+ifeq ($(TARGET_XBOX),1)
+CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(BACKEND_CFLAGS) $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(BACKEND_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv
 endif
 
 # Check for enhancement options
@@ -652,6 +727,11 @@ endif
 
 ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
 
+ifeq ($(TARGET_XBOX),1)
+NXDK_ASFLAGS += -target i386-pc-win32 -march=pentium3 -nostdlib -I$(NXDK_DIR)/lib -I$(NXDK_DIR)/lib/xboxrt
+ASFLAGS := $(ASFLAGS) $(NXDK_ASFLAGS)
+endif
+
 ifeq ($(TARGET_WEB),1)
   LDFLAGS := -lm -lGL -lSDL2 -no-pie -s TOTAL_MEMORY=64MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
 
@@ -669,6 +749,9 @@ else ifeq ($(TARGET_RPI),1)
 
 else ifeq ($(OSX_BUILD),1)
   LDFLAGS := -lm $(PLATFORM_LDFLAGS) $(BACKEND_LDFLAGS) -lpthread
+
+else ifeq ($(TARGET_XBOX),1)
+  LDFLAGS := $(PLATFORM_LDFLAGS)
 
 else ifeq ($(HOST_OS),Haiku)
   LDFLAGS := $(BACKEND_LDFLAGS) -no-pie
@@ -1025,13 +1108,20 @@ $(BUILD_DIR)/%.o: $(BUILD_DIR)/%.c
 	@$(CC_CHECK) $(CC_CHECK_CFLAGS) -MMD -MP -MT $@ -MF $(BUILD_DIR)/$*.d $<
 	$(CC) -c $(CFLAGS) -o $@ $<
 
+ifeq ($(TARGET_XBOX),1)
+$(BUILD_DIR)/%.o: %.s
+	$(AS) $(ASFLAGS) -c -o $@ $<
+else
 $(BUILD_DIR)/%.o: %.s
 	$(AS) $(ASFLAGS) -MD $(BUILD_DIR)/$*.d -o $@ $<
+endif
 
-
-
+ifeq ($(TARGET_XBOX),1)
+$(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES)
+else
 $(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(if $(RPC_LIBS),$(BUILD_DIR)/$(RPC_LIBS),)
 	$(LD) -L $(BUILD_DIR) -o $@ $(O_FILES) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
+endif
 
 .PHONY: all clean distclean default diff test load libultra res
 .PRECIOUS: $(BUILD_DIR)/bin/%.elf $(SOUND_BIN_DIR)/%.ctl $(SOUND_BIN_DIR)/%.tbl $(SOUND_SAMPLE_TABLES) $(SOUND_BIN_DIR)/%.s $(BUILD_DIR)/%

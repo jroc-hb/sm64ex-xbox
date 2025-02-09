@@ -19,6 +19,7 @@
 
 #include "gfx/gfx_dxgi.h"
 #include "gfx/gfx_sdl.h"
+#include "gfx/gfx_xbox.h"
 
 #include "audio/audio_api.h"
 #include "audio/audio_sdl.h"
@@ -37,6 +38,12 @@
 
 #ifdef DISCORDRPC
 #include "pc/discord/discordrpc.h"
+#endif
+
+#ifdef TARGET_XBOX
+#include <hal/debug.h>
+#include <hal/video.h>
+#include <windows.h>
 #endif
 
 OSMesg D_80339BEC;
@@ -174,9 +181,11 @@ static void on_anim_frame(double time) {
 void main_func(void) {
     const char *gamedir = gCLIOpts.GameDir[0] ? gCLIOpts.GameDir : FS_BASEDIR;
     const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : sys_user_path();
+#ifndef TARGET_XBOX // TODO XBOX: Implement filesystem
     fs_init(sys_ropaths, gamedir, userpath);
 
     configfile_load(configfile_name());
+#endif
 
     if (gCLIOpts.FullScreen == 1)
         configWindow.fullscreen = true;
@@ -193,6 +202,8 @@ void main_func(void) {
     wm_api = &gfx_sdl;
     #elif defined(WAPI_DXGI)
     wm_api = &gfx_dxgi;
+    #elif defined(WAPI_XSM64)
+    wm_api = &gfx_xbox_wm_api;
     #else
     #error No window API!
     #endif
@@ -210,6 +221,9 @@ void main_func(void) {
     # else
     #  define RAPI_NAME "OpenGL"
     # endif
+    #elif defined(RAPI_XSM64)
+    rendering_api = &gfx_xbox_renderer_api;
+    #  define RAPI_NAME "XSM64"
     #else
     #error No rendering API!
     #endif

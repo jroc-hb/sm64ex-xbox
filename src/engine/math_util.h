@@ -32,6 +32,10 @@ extern f32 gCosineTable[];
 
 #define sqr(x) ((x) * (x))
 
+#ifdef TARGET_XBOX // FIXME: Hack for name collision
+#define atan2f atan2f_sm64
+#endif
+
 #define absx(x) ((x) < 0 ? -(x) : (x))
 
 #include "../../include/libc/stdlib.h"

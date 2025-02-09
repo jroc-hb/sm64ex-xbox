@@ -28,6 +28,10 @@
 #include "../configfile.h"
 #include "../fs/fs.h"
 
+#ifdef TARGET_XBOX
+#include <windows.h>
+#endif
+
 #define SUPPORT_CHECK(x) assert(x)
 
 // SCALE_M_N: upscale/downscale M-bit integer to N-bit

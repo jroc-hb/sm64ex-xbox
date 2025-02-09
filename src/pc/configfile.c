@@ -225,113 +225,117 @@ const char *configfile_name(void) {
 
 // Loads the config file specified by 'filename'
 void configfile_load(const char *filename) {
-    fs_file_t *file;
-    char *line;
+    #ifndef TARGET_XBOX // FIX ME
+        fs_file_t *file;
+        char *line;
 
-    printf("Loading configuration from '%s'\n", filename);
+        printf("Loading configuration from '%s'\n", filename);
 
-    file = fs_open(filename);
-    if (file == NULL) {
-        // Create a new config file and save defaults
-        printf("Config file '%s' not found. Creating it.\n", filename);
-        configfile_save(filename);
-        return;
-    }
-
-    // Go through each line in the file
-    while ((line = read_file_line(file)) != NULL) {
-        char *p = line;
-        char *tokens[1 + MAX_BINDS];
-        int numTokens;
-
-        while (isspace(*p))
-            p++;
-
-        if (!*p || *p == '#') // comment or empty line
-            continue;
-
-        numTokens = tokenize_string(p, sizeof(tokens) / sizeof(tokens[0]), tokens);
-        if (numTokens != 0) {
-            if (numTokens >= 2) {
-                const struct ConfigOption *option = NULL;
-
-                for (unsigned int i = 0; i < ARRAY_LEN(options); i++) {
-                    if (strcmp(tokens[0], options[i].name) == 0) {
-                        option = &options[i];
-                        break;
-                    }
-                }
-                if (option == NULL)
-                    printf("unknown option '%s'\n", tokens[0]);
-                else {
-                    switch (option->type) {
-                        case CONFIG_TYPE_BOOL:
-                            if (strcmp(tokens[1], "true") == 0)
-                                *option->boolValue = true;
-                            else
-                                *option->boolValue = false;
-                            break;
-                        case CONFIG_TYPE_UINT:
-                            sscanf(tokens[1], "%u", option->uintValue);
-                            break;
-                        case CONFIG_TYPE_BIND:
-                            for (int i = 0; i < MAX_BINDS && i < numTokens - 1; ++i)
-                                sscanf(tokens[i + 1], "%x", option->uintValue + i);
-                            break;
-                        case CONFIG_TYPE_FLOAT:
-                            sscanf(tokens[1], "%f", option->floatValue);
-                            break;
-                        default:
-                            assert(0); // bad type
-                    }
-                    printf("option: '%s', value:", tokens[0]);
-                    for (int i = 1; i < numTokens; ++i) printf(" '%s'", tokens[i]);
-                    printf("\n");
-                }
-            } else
-                puts("error: expected value");
+        file = fs_open(filename);
+        if (file == NULL) {
+            // Create a new config file and save defaults
+            printf("Config file '%s' not found. Creating it.\n", filename);
+            configfile_save(filename);
+            return;
         }
-        free(line);
-    }
 
-    fs_close(file);
+        // Go through each line in the file
+        while ((line = read_file_line(file)) != NULL) {
+            char *p = line;
+            char *tokens[1 + MAX_BINDS];
+            int numTokens;
+
+            while (isspace(*p))
+                p++;
+
+            if (!*p || *p == '#') // comment or empty line
+                continue;
+
+            numTokens = tokenize_string(p, sizeof(tokens) / sizeof(tokens[0]), tokens);
+            if (numTokens != 0) {
+                if (numTokens >= 2) {
+                    const struct ConfigOption *option = NULL;
+
+                    for (unsigned int i = 0; i < ARRAY_LEN(options); i++) {
+                        if (strcmp(tokens[0], options[i].name) == 0) {
+                            option = &options[i];
+                            break;
+                        }
+                    }
+                    if (option == NULL)
+                        printf("unknown option '%s'\n", tokens[0]);
+                    else {
+                        switch (option->type) {
+                            case CONFIG_TYPE_BOOL:
+                                if (strcmp(tokens[1], "true") == 0)
+                                    *option->boolValue = true;
+                                else
+                                    *option->boolValue = false;
+                                break;
+                            case CONFIG_TYPE_UINT:
+                                sscanf(tokens[1], "%u", option->uintValue);
+                                break;
+                            case CONFIG_TYPE_BIND:
+                                for (int i = 0; i < MAX_BINDS && i < numTokens - 1; ++i)
+                                    sscanf(tokens[i + 1], "%x", option->uintValue + i);
+                                break;
+                            case CONFIG_TYPE_FLOAT:
+                                sscanf(tokens[1], "%f", option->floatValue);
+                                break;
+                            default:
+                                assert(0); // bad type
+                        }
+                        printf("option: '%s', value:", tokens[0]);
+                        for (int i = 1; i < numTokens; ++i) printf(" '%s'", tokens[i]);
+                        printf("\n");
+                    }
+                } else
+                    puts("error: expected value");
+            }
+            free(line);
+        }
+
+        fs_close(file);
+    #endif
 }
 
 // Writes the config file to 'filename'
 void configfile_save(const char *filename) {
-    FILE *file;
+    #ifndef TARGET_XBOX // FIX ME
+        FILE *file;
 
-    printf("Saving configuration to '%s'\n", filename);
+        printf("Saving configuration to '%s'\n", filename);
 
-    file = fopen(fs_get_write_path(filename), "w");
-    if (file == NULL) {
-        // error
-        return;
-    }
-
-    for (unsigned int i = 0; i < ARRAY_LEN(options); i++) {
-        const struct ConfigOption *option = &options[i];
-
-        switch (option->type) {
-            case CONFIG_TYPE_BOOL:
-                fprintf(file, "%s %s\n", option->name, *option->boolValue ? "true" : "false");
-                break;
-            case CONFIG_TYPE_UINT:
-                fprintf(file, "%s %u\n", option->name, *option->uintValue);
-                break;
-            case CONFIG_TYPE_FLOAT:
-                fprintf(file, "%s %f\n", option->name, *option->floatValue);
-                break;
-            case CONFIG_TYPE_BIND:
-                fprintf(file, "%s ", option->name);
-                for (int i = 0; i < MAX_BINDS; ++i)
-                    fprintf(file, "%04x ", option->uintValue[i]);
-                fprintf(file, "\n");
-                break;
-            default:
-                assert(0); // unknown type
+        file = fopen(fs_get_write_path(filename), "w");
+        if (file == NULL) {
+            // error
+            return;
         }
-    }
 
-    fclose(file);
+        for (unsigned int i = 0; i < ARRAY_LEN(options); i++) {
+            const struct ConfigOption *option = &options[i];
+
+            switch (option->type) {
+                case CONFIG_TYPE_BOOL:
+                    fprintf(file, "%s %s\n", option->name, *option->boolValue ? "true" : "false");
+                    break;
+                case CONFIG_TYPE_UINT:
+                    fprintf(file, "%s %u\n", option->name, *option->uintValue);
+                    break;
+                case CONFIG_TYPE_FLOAT:
+                    fprintf(file, "%s %f\n", option->name, *option->floatValue);
+                    break;
+                case CONFIG_TYPE_BIND:
+                    fprintf(file, "%s ", option->name);
+                    for (int i = 0; i < MAX_BINDS; ++i)
+                        fprintf(file, "%04x ", option->uintValue[i]);
+                    fprintf(file, "\n");
+                    break;
+                default:
+                    assert(0); // unknown type
+            }
+        }
+
+        fclose(file);
+    #endif
 }

@@ -31,7 +31,17 @@ typedef double f64;
 
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/types.h>
+#ifdef TARGET_XBOX
+    #include <limits.h>
+    typedef int ssize_t;        /* common 32 bit case */
+    #define SSIZE_MIN  INT_MIN
+    #define SSIZE_MAX  INT_MAX
+    #ifndef M_PI
+        #define M_PI 3.14159265358979323846
+    #endif
+#else
+    #include <sys/types.h>
+#endif
 
 #if defined(__MINGW32__) 
 #include <_mingw.h>

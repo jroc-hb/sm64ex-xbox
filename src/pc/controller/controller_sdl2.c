@@ -5,7 +5,12 @@
 #include <stdbool.h>
 #include <math.h>
 
+#ifdef TARGET_XBOX
+#include <SDL.h>
+extern int g_xbox_exit_button_state;
+#else
 #include <SDL2/SDL.h>
+#endif
 
 // Analog camera movement by Pathétique (github.com/vrmiguel), y0shin and Mors
 // Contribute or communicate bugs at github.com/vrmiguel/sm64-analog-camera
@@ -91,7 +96,11 @@ static void controller_sdl_bind(void) {
 static void controller_sdl_init(void) {
     // try loading an external gamecontroller mapping file
     uint64_t gcsize = 0;
+    #ifdef TARGET_XBOX // TODO XBOX: Implement filesystem
+    void *gcdata;
+    #else
     void *gcdata = fs_load_file("gamecontrollerdb.txt", &gcsize);
+    #endif
     if (gcdata && gcsize) {
         SDL_RWops *rw = SDL_RWFromConstMem(gcdata, gcsize);
         if (rw) {

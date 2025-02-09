@@ -69,8 +69,12 @@ const char *sys_file_name(const char *fpath) {
 }
 
 void sys_sleep(const uint64_t us) {
+    #ifdef TARGET_XBOX
+        // Nothing
+    #else
     // TODO: figure out which of the platforms we want to support DOESN'T have usleep()
     usleep(us);
+    #endif
 }
 
 /* this calls a platform-specific impl function after forming the error message */
@@ -90,11 +94,20 @@ void sys_fatal(const char *fmt, ...) {
 #ifdef HAVE_SDL2
 
 // we can just ask SDL for most of this shit if we have it
-#include <SDL2/SDL.h>
+#ifdef TARGET_XBOX
+    #ifndef SDL_H
+    #include <SDL.h>
+    #endif
+#else
+    #include <SDL2/SDL.h>
+#endif
 
 // TEMPORARY: check the old save folder and copy contents to the new path
 // this will be removed after a while
 static inline bool copy_userdata(const char *userdir) {
+    #ifdef TARGET_XBOX
+    return false;
+    #else
     char oldpath[SYS_MAX_PATH] = { 0 };
     char path[SYS_MAX_PATH] = { 0 };
 
@@ -119,10 +132,15 @@ static inline bool copy_userdata(const char *userdir) {
     fs_sys_copy_file(oldpath, path);
 
     return ret;
+    #endif
 }
 
 const char *sys_user_path(void) {
     static char path[SYS_MAX_PATH] = { 0 };
+
+    #ifdef TARGET_XBOX
+    return path;
+    #else
 
     // get the new pref path from SDL
     char *sdlpath = SDL_GetPrefPath("", "sm64ex");
@@ -143,6 +161,7 @@ const char *sys_user_path(void) {
     }
 
     return path;
+    #endif
 }
 
 const char *sys_exe_path(void) {

@@ -9,6 +9,10 @@
 #include <emscripten.h>
 #endif
 
+#ifdef TARGET_XBOX
+#include "xbox.h"
+#endif
+
 extern OSMgrArgs piMgrArgs;
 
 u64 osClockRate = 62500000;
@@ -148,15 +152,27 @@ s32 osEepromLongRead(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes)
         ret = 0;
     }
 #else
+#ifdef TARGET_XBOX // TODO XBOX: Should use actual file system
+    FILE *fp = fopen(USER_DATA_SAVE_PATH "\\sm64_save_file.bin", "rb");
+#else
     fs_file_t *fp = fs_open(SAVE_FILENAME);
+#endif
     if (fp == NULL) {
         return -1;
     }
+    #ifdef TARGET_XBOX
+    if (fread(content, 1, 512, fp) == 512) {
+        memcpy(buffer, content + address * 8, nbytes);
+        ret = 0;
+    }
+    fclose(fp);
+    #else
     if (fs_read(fp, content, 512) == 512) {
         memcpy(buffer, content + address * 8, nbytes);
         ret = 0;
     }
     fs_close(fp);
+    #endif
 #endif
     return ret;
 }
@@ -178,12 +194,21 @@ s32 osEepromLongWrite(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes
     }, content);
     s32 ret = 0;
 #else
-    FILE *fp = fopen(fs_get_write_path(SAVE_FILENAME), "wb");
+    #ifdef TARGET_XBOX
+        FILE* fp = fopen(USER_DATA_SAVE_PATH "\\sm64_save_file.bin", "wb");
+    #else
+        FILE *fp = fopen(fs_get_write_path(SAVE_FILENAME), "wb");
+    #endif
     if (fp == NULL) {
         return -1;
     }
+    #ifdef TARGET_XBOX // FIXME Should use actual file system
     s32 ret = fwrite(content, 1, 512, fp) == 512 ? 0 : -1;
     fclose(fp);
+    #else
+    s32 ret = fwrite(content, 1, 512, fp) == 512 ? 0 : -1;
+    fclose(fp);
+    #endif
 #endif
     return ret;
 }
