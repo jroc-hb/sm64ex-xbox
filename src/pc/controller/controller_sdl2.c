@@ -270,6 +270,10 @@ static void controller_sdl_read(OSContPad *pad) {
         int stick_y = -righty / 0x100;
         pad->ext_stick_y = stick_y == 128 ? 127 : stick_y;
     }
+
+    #ifdef TARGET_XBOX
+    g_xbox_exit_button_state = SDL_GameControllerGetButton(sdl_cntrl, SDL_CONTROLLER_BUTTON_BACK);
+    #endif
 }
 
 static void controller_sdl_rumble_play(f32 strength, f32 length) {

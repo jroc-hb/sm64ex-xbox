@@ -155,7 +155,7 @@ static void matrix_viewport(
 
 
 
-static void gfx_xbox_wm_init(const char *game_name, bool start_in_fullscreen)
+static void gfx_xbox_wm_init(const char *game_name)
 {
     BOOL success;
 
@@ -171,15 +171,6 @@ static void gfx_xbox_wm_set_keyboard_callbacks(
     bool (*on_key_down)(int scancode),
     bool (*on_key_up)(int scancode),
     void (*on_all_keys_up)(void))
-{
-}
-
-static void gfx_xbox_wm_set_fullscreen_changed_callback(
-    void (*on_fullscreen_changed)(bool is_now_fullscreen))
-{
-}
-
-static void gfx_xbox_wm_set_fullscreen(bool enable)
 {
 }
 
@@ -891,8 +882,6 @@ static void gfx_xbox_renderer_finish_render(void)
 struct GfxWindowManagerAPI gfx_xbox_wm_api = {
     gfx_xbox_wm_init,
     gfx_xbox_wm_set_keyboard_callbacks,
-    gfx_xbox_wm_set_fullscreen_changed_callback,
-    gfx_xbox_wm_set_fullscreen,
     gfx_xbox_wm_main_loop,
     gfx_xbox_wm_get_dimensions,
     gfx_xbox_wm_handle_events,

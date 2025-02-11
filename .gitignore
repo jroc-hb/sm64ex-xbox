@@ -32,6 +32,8 @@
 *.out
 *.app
 *.hex
+*.xbe
+*.iso
 
 # Debug files
 *.dSYM/

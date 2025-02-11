@@ -1,5 +1,4 @@
-// TODO XBOX: Implement filesystem
-#ifndef TARGET_XBOX
+#ifndef TARGET_XBOX // TODO XBOX: Implement filesystem
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>

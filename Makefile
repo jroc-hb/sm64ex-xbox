@@ -85,9 +85,9 @@ WINDOWS_BUILD ?= 0
 
 # Xbox nxdk setup
 ifeq ($(TARGET_XBOX), 1)
-  # No further detection needed
   XBE_TITLE = sm64ex
   NXDK_SDL = y
+  GEN_XISO = $(XBE_TITLE).iso
 endif
 
 # Attempt to detect OS

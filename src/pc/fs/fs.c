@@ -1,19 +1,12 @@
-// TODO XBOX: Implement the virtual filesystem using nxdk
 #ifndef TARGET_XBOX
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef TARGET_XBOX
-#include <windows.h>
-#include <stdio.h>
-#include <stdbool.h>
-#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#endif
 #include <ctype.h>
 #ifdef _WIN32
 #include <direct.h>
@@ -387,74 +380,16 @@ const char *fs_convert_path(char *buf, const size_t bufsiz, const char *path)  {
 /* these operate on the real file system */
 
 bool fs_sys_file_exists(const char *name) {
-#ifdef TARGET_XBOX
-    DWORD attributes = GetFileAttributes(name);
-    return (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY));
-#else
     struct stat st;
     return (stat(name, &st) == 0 && S_ISREG(st.st_mode));
-#endif
 }
 
 bool fs_sys_dir_exists(const char *name) {
-#ifdef TARGET_XBOX
-    DWORD attributes = GetFileAttributes(name);
-    return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
-#else
     struct stat st;
     return (stat(name, &st) == 0 && S_ISDIR(st.st_mode));
-#endif
 }
 
 bool fs_sys_walk(const char *base, walk_fn_t walk, void *user, const bool recur) {
-#ifdef TARGET_XBOX
-    char searchPath[MAX_PATH];
-    char fullPath[MAX_PATH];
-    WIN32_FIND_DATA findFileData;
-    HANDLE hFind;
-
-    // Append "\*" to search in the base directory
-    snprintf(searchPath, sizeof(searchPath), "%s\\*", base);
-    hFind = FindFirstFile(searchPath, &findFileData);
-    if (hFind == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "fs_sys_walk(): could not open `%s`\n", base);
-        return false;
-    }
-
-    bool ret = true;
-
-    do {
-        // Skip "." and ".."
-        if (findFileData.cFileName[0] == '.' && 
-            (findFileData.cFileName[1] == '\0' || 
-            (findFileData.cFileName[1] == '.' && findFileData.cFileName[2] == '\0'))) {
-            continue;
-        }
-
-        // Construct full path
-        snprintf(fullPath, sizeof(fullPath), "%s\\%s", base, findFileData.cFileName);
-
-        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            // If it's a directory and recursion is enabled, recurse
-            if (recur) {
-                if (!fs_sys_walk(fullPath, walk, user, recur)) {
-                    ret = false;
-                    break;
-                }
-            }
-        } else {
-            // If it's a file, call the callback function
-            if (!walk(user, fullPath)) {
-                ret = false;
-                break;
-            }
-        }
-
-    } while (FindNextFile(hFind, &findFileData) != 0);
-
-    FindClose(hFind);
-    return ret;
-#else
     char fullpath[SYS_MAX_PATH];
     DIR *dir;
     struct dirent *ent;
@@ -486,7 +421,6 @@ bool fs_sys_walk(const char *base, walk_fn_t walk, void *user, const bool recur)
 
     closedir(dir);
     return ret;
-#endif
 }
 
 fs_pathlist_t fs_sys_enumerate(const char *base, const bool recur) {
@@ -502,9 +436,7 @@ fs_pathlist_t fs_sys_enumerate(const char *base, const bool recur) {
 }
 
 bool fs_sys_mkdir(const char *name) {
-    #ifdef TARGET_XBOX
-    return CreateDirectoryA(name, NULL) || GetLastError() == ERROR_ALREADY_EXISTS;
-    #elif _WIN32
+    #ifdef _WIN32
     return _mkdir(name) == 0;
     #else
     return mkdir(name, 0777) == 0;

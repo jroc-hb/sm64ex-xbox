@@ -105,9 +105,6 @@ void sys_fatal(const char *fmt, ...) {
 // TEMPORARY: check the old save folder and copy contents to the new path
 // this will be removed after a while
 static inline bool copy_userdata(const char *userdir) {
-    #ifdef TARGET_XBOX
-    return false;
-    #else
     char oldpath[SYS_MAX_PATH] = { 0 };
     char path[SYS_MAX_PATH] = { 0 };
 
@@ -132,15 +129,13 @@ static inline bool copy_userdata(const char *userdir) {
     fs_sys_copy_file(oldpath, path);
 
     return ret;
-    #endif
 }
 
 const char *sys_user_path(void) {
+    #ifdef TARGET_XBOX // TODO XBOX: Fix user path
+    return 0;
+    #endif
     static char path[SYS_MAX_PATH] = { 0 };
-
-    #ifdef TARGET_XBOX
-    return path;
-    #else
 
     // get the new pref path from SDL
     char *sdlpath = SDL_GetPrefPath("", "sm64ex");
@@ -161,7 +156,6 @@ const char *sys_user_path(void) {
     }
 
     return path;
-    #endif
 }
 
 const char *sys_exe_path(void) {

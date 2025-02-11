@@ -280,8 +280,24 @@ void main_func(void) {
 #endif
 }
 
+#if defined(TARGET_XBOX)
+#include <nxdk/mount.h>
+#include <winapi/fileapi.h>
+#include "xbox.h"
+int main(void)
+{
+    if (!nxIsDriveMounted('E')) {
+        nxMountDrive('E', "\\Device\\Harddisk0\\Partition1\\");
+    }
+    CreateDirectoryA(USER_DATA_TITLE_PATH, NULL);
+    CreateDirectoryA(USER_DATA_SAVE_PATH, NULL);
+    main_func();
+    return 0;
+}
+#else
 int main(int argc, char *argv[]) {
     parse_cli_opts(argc, argv);
     main_func();
     return 0;
 }
+#endif
