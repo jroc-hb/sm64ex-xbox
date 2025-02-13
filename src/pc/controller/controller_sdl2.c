@@ -96,11 +96,7 @@ static void controller_sdl_bind(void) {
 static void controller_sdl_init(void) {
     // try loading an external gamecontroller mapping file
     uint64_t gcsize = 0;
-    #ifdef TARGET_XBOX // TODO XBOX: Implement filesystem
-    void *gcdata;
-    #else
     void *gcdata = fs_load_file("gamecontrollerdb.txt", &gcsize);
-    #endif
     if (gcdata && gcsize) {
         SDL_RWops *rw = SDL_RWFromConstMem(gcdata, gcsize);
         if (rw) {

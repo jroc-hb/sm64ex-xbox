@@ -225,7 +225,6 @@ const char *configfile_name(void) {
 
 // Loads the config file specified by 'filename'
 void configfile_load(const char *filename) {
-    #ifndef TARGET_XBOX // FIX ME
         fs_file_t *file;
         char *line;
 
@@ -296,12 +295,10 @@ void configfile_load(const char *filename) {
         }
 
         fs_close(file);
-    #endif
 }
 
 // Writes the config file to 'filename'
 void configfile_save(const char *filename) {
-    #ifndef TARGET_XBOX // FIX ME
         FILE *file;
 
         printf("Saving configuration to '%s'\n", filename);
@@ -337,5 +334,4 @@ void configfile_save(const char *filename) {
         }
 
         fclose(file);
-    #endif
 }

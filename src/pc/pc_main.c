@@ -44,6 +44,7 @@
 #include <hal/debug.h>
 #include <hal/video.h>
 #include <windows.h>
+#include <nxdk/mount.h>
 #endif
 
 OSMesg D_80339BEC;
@@ -181,11 +182,9 @@ static void on_anim_frame(double time) {
 void main_func(void) {
     const char *gamedir = gCLIOpts.GameDir[0] ? gCLIOpts.GameDir : FS_BASEDIR;
     const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : sys_user_path();
-#ifndef TARGET_XBOX // TODO XBOX: Implement filesystem
     fs_init(sys_ropaths, gamedir, userpath);
 
     configfile_load(configfile_name());
-#endif
 
     if (gCLIOpts.FullScreen == 1)
         configWindow.fullscreen = true;
@@ -280,24 +279,13 @@ void main_func(void) {
 #endif
 }
 
-#if defined(TARGET_XBOX)
-#include <nxdk/mount.h>
-#include <winapi/fileapi.h>
-#include "xbox.h"
-int main(void)
-{
+int main(int argc, char *argv[]) {
+    #ifdef TARGET_XBOX
     if (!nxIsDriveMounted('E')) {
         nxMountDrive('E', "\\Device\\Harddisk0\\Partition1\\");
     }
-    CreateDirectoryA(USER_DATA_TITLE_PATH, NULL);
-    CreateDirectoryA(USER_DATA_SAVE_PATH, NULL);
-    main_func();
-    return 0;
-}
-#else
-int main(int argc, char *argv[]) {
+    #endif
     parse_cli_opts(argc, argv);
     main_func();
     return 0;
 }
-#endif

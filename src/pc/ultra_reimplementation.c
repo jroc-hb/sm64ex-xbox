@@ -152,11 +152,11 @@ s32 osEepromLongRead(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes)
         ret = 0;
     }
 #else
-#ifdef TARGET_XBOX // TODO XBOX: Should use actual file system
-    FILE *fp = fopen(USER_DATA_SAVE_PATH "\\sm64_save_file.bin", "rb");
-#else
+    #ifdef TARGET_XBOX
+    FILE *fp = fopen(USER_DATA_SAVE_PATH SAVE_FILENAME, "rb");
+    #else
     fs_file_t *fp = fs_open(SAVE_FILENAME);
-#endif
+    #endif
     if (fp == NULL) {
         return -1;
     }
@@ -194,21 +194,16 @@ s32 osEepromLongWrite(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes
     }, content);
     s32 ret = 0;
 #else
-#ifdef TARGET_XBOX
-    FILE* fp = fopen(USER_DATA_SAVE_PATH "\\sm64_save_file.bin", "wb");
-#else
+    #ifdef TARGET_XBOX
+    FILE* fp = fopen(USER_DATA_SAVE_PATH SAVE_FILENAME, "wb");
+    #else
     FILE *fp = fopen(fs_get_write_path(SAVE_FILENAME), "wb");
-#endif
+    #endif
     if (fp == NULL) {
         return -1;
     }
-    #ifdef TARGET_XBOX // FIXME Should use actual file system
     s32 ret = fwrite(content, 1, 512, fp) == 512 ? 0 : -1;
     fclose(fp);
-    #else
-    s32 ret = fwrite(content, 1, 512, fp) == 512 ? 0 : -1;
-    fclose(fp);
-    #endif
 #endif
     return ret;
 }

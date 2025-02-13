@@ -1,4 +1,3 @@
-#ifndef TARGET_XBOX // TODO XBOX: Implement filesystem
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -116,4 +115,3 @@ fs_packtype_t fs_packtype_dir = {
     pack_dir_eof,
     pack_dir_close,
 };
-#endif

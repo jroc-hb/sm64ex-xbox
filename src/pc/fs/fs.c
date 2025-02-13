@@ -1,12 +1,16 @@
-#ifndef TARGET_XBOX
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef TARGET_XBOX
+#include <windows.h>
+#include <hal/debug.h>
+#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#endif
 #include <ctype.h>
 #ifdef _WIN32
 #include <direct.h>
@@ -379,23 +383,75 @@ const char *fs_convert_path(char *buf, const size_t bufsiz, const char *path)  {
 
 /* these operate on the real file system */
 
+#ifdef TARGET_XBOX
+bool fs_sys_file_exists(const char *name) {
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+    return GetFileAttributesEx(name, GetFileExInfoStandard, &fileInfo) && !(fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+}
+#else
 bool fs_sys_file_exists(const char *name) {
     struct stat st;
     return (stat(name, &st) == 0 && S_ISREG(st.st_mode));
 }
+#endif
 
+#ifdef TARGET_XBOX
+bool fs_sys_dir_exists(const char *name) {
+    DWORD attribs = GetFileAttributes(name);
+    return (attribs != INVALID_FILE_ATTRIBUTES && (attribs & FILE_ATTRIBUTE_DIRECTORY));
+}
+#else
 bool fs_sys_dir_exists(const char *name) {
     struct stat st;
     return (stat(name, &st) == 0 && S_ISDIR(st.st_mode));
 }
+#endif
 
+#ifdef TARGET_XBOX
+bool fs_sys_walk(const char *base, walk_fn_t walk, void *user, const bool recur) {
+    char fullpath[SYS_MAX_PATH];
+    WIN32_FIND_DATA findData;
+    HANDLE hFind;
+
+    snprintf(fullpath, sizeof(fullpath), "%s/*", base);
+    hFind = FindFirstFile(fullpath, &findData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "fs_sys_walk(): could not open `%s`\n", base);
+        return false;
+    }
+
+    bool ret = true;
+
+    do {
+        if (findData.cFileName[0] == 0 || findData.cFileName[0] == '.') continue; // skip ./.. and hidden files
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", base, findData.cFileName);
+        if (fs_sys_dir_exists(fullpath)) {
+            if (recur) {
+                if (!fs_sys_walk(fullpath, walk, user, recur)) {
+                    ret = false;
+                    break;
+                }
+            }
+        } else {
+            if (!walk(user, fullpath)) {
+                ret = false;
+                break;
+            }
+        }
+    } while (FindNextFile(hFind, &findData) != 0);
+
+    FindClose(hFind);
+    return ret;
+}
+#else
 bool fs_sys_walk(const char *base, walk_fn_t walk, void *user, const bool recur) {
     char fullpath[SYS_MAX_PATH];
     DIR *dir;
     struct dirent *ent;
 
     if (!(dir = opendir(base))) {
-        fprintf(stderr, "fs_dir_walk(): could not open `%s`\n", base);
+        fprintf(stderr, "fs_sys_walk(): could not open `%s`\n", base);
         return false;
     }
 
@@ -422,6 +478,7 @@ bool fs_sys_walk(const char *base, walk_fn_t walk, void *user, const bool recur)
     closedir(dir);
     return ret;
 }
+#endif
 
 fs_pathlist_t fs_sys_enumerate(const char *base, const bool recur) {
     char **paths = malloc(sizeof(char *) * 32);
@@ -437,7 +494,11 @@ fs_pathlist_t fs_sys_enumerate(const char *base, const bool recur) {
 
 bool fs_sys_mkdir(const char *name) {
     #ifdef _WIN32
-    return _mkdir(name) == 0;
+        #ifdef TARGET_XBOX
+            return CreateDirectoryA(name, NULL);
+        #else
+        return _mkdir(name) == 0;
+        #endif
     #else
     return mkdir(name, 0777) == 0;
     #endif
@@ -469,4 +530,3 @@ bool fs_sys_copy_file(const char *oldname, const char *newname) {
 
     return ret;
 }
-#endif

@@ -76,7 +76,11 @@ CONTROLLER_API ?= SDL2
 
 # Misc settings for EXTERNAL_DATA
 
+ifdef TARGET_XBOX
+BASEDIR ?= D:\\res
+else
 BASEDIR ?= res
+endif
 BASEPACK ?= base.zip
 
 # Automatic settings for PC port(s)

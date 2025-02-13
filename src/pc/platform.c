@@ -11,6 +11,10 @@
 #include "configfile.h"
 #include "platform.h"
 
+#ifdef TARGET_XBOX
+#include "xbox.h"
+#endif
+
 /* NULL terminated list of platform specific read-only data paths */
 /* priority is top first */
 const char *sys_ropaths[] = {
@@ -132,9 +136,6 @@ static inline bool copy_userdata(const char *userdir) {
 }
 
 const char *sys_user_path(void) {
-    #ifdef TARGET_XBOX // TODO XBOX: Fix user path
-    return 0;
-    #endif
     static char path[SYS_MAX_PATH] = { 0 };
 
     // get the new pref path from SDL
@@ -185,7 +186,11 @@ static void sys_fatal_impl(const char *msg) {
 #warning "You might want to implement these functions for your platform"
 
 const char *sys_user_path(void) {
+    #ifdef TARGET_XBOX
+    return USER_DATA_SAVE_PATH
+    #else
     return ".";
+    #endif
 }
 
 const char *sys_exe_path(void) {
