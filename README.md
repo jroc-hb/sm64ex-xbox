@@ -27,4 +27,8 @@ For example `--savepath .` will read saves from the current directory (which not
 ## Building
 For building instructions, please refer to the [wiki](https://github.com/sm64pc/sm64ex/wiki).
 
+XBOX
+
+make TARGET_XBOX=1
+
 **Make sure you have MXE first before attempting to compile for Windows on Linux and WSL. Follow the guide on the wiki.**

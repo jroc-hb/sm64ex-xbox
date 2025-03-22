@@ -640,7 +640,7 @@ ifeq ($(TARGET_XBOX),1)
         -I$(NXDK_DIR)/lib/pdclib/platform/xbox/include \
         -I$(NXDK_DIR)/lib/winapi \
         -I$(NXDK_DIR)/lib/xboxrt/vcruntime \
-        -Wno-ignored-attributes -DNXDK -D__STDC__=1
+        -Wno-ignored-attributes -DNXDK -D__STDC__=1 -U__STDC_NO_THREADS__
   PLATFORM_CFLAGS := -DTARGET_XBOX -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function $(NXDK_CFLAGS) ${LEGACY_NXDK_CFLAGS}
   PLATFORM_LDFLAGS := -entry:WinMainCRTStartup
 endif
