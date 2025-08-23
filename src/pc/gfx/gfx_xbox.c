@@ -117,16 +117,6 @@ static int g_tex_bindings[2];
 static int g_last_tile_selected;
 static uint32_t *g_swizzle_buf;
 
-// FIXME: Does not belong here
-static uint32_t *pb_push2f(
-    uint32_t *p, DWORD command, float param1, float param2)
-{
-    pb_push_to(SUBCH_3D,p,command,2);
-    *(float*)(p+1)=param1;
-    *(float*)(p+2)=param2;
-    return p+3;
-}
-
 static void matrix_identity(float out[4][4])
 {
     memset(out, 0, 4*4*sizeof(float));
