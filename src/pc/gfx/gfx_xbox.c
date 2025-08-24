@@ -839,27 +839,54 @@ static void gfx_xbox_renderer_end_frame(void)
 static void gfx_xbox_renderer_finish_render(void)
 {
 #if SHOW_DBG_INFO
-    static int last_updated = 0;
+    static int last_stats_update = 0;
     static MM_STATISTICS mem_stats;
+    static uint32_t avg_uspf = 0;
+    static uint32_t avg_usbf = 0;
+    static const int STATS_UPDATE_MS = 500;  // Update stats every 500ms
+    static const int AVG_FRAMES = 30;        // Average over 30 frames
+    static int frame_count = 0;
+    static uint32_t uspf_acc = 0;
+    static uint32_t usbf_acc = 0;
 
     while(pb_busy());    
     uint64_t frame_end_tsc = rdtsc();
-
-    // Update select info every second
-    int now = GetTickCount();
-    if ((last_updated == 0) || ((now-last_updated) > 1000)) {
-        last_updated = now;
-        mem_stats.Length = sizeof(mem_stats);
-        MmQueryStatistics(&mem_stats);
-    }
-
+    
+    // Accumulate frame timing data
     uint32_t uspf = tsc_to_us(frame_end_tsc-g_frame_start_tsc);
     uint32_t usbf = tsc_to_us(g_frame_to_frame_tsc);
+    uspf_acc += uspf;
+    usbf_acc += usbf;
+    frame_count++;
+
+    // Update stats periodically but draw every frame
+    int now = GetTickCount();
+    if ((last_stats_update == 0) || ((now-last_stats_update) > STATS_UPDATE_MS)) {
+        last_stats_update = now;
+        mem_stats.Length = sizeof(mem_stats);
+        MmQueryStatistics(&mem_stats);
+
+        // Calculate averages
+        if (frame_count > 0) {
+            avg_uspf = uspf_acc / frame_count;
+            avg_usbf = usbf_acc / frame_count;
+            uspf_acc = 0;
+            usbf_acc = 0;
+            frame_count = 0;
+        }
+    }
+
+    uint32_t mspf = avg_uspf / 1000;   // ms per frame
+    uint32_t fps  = (mspf > 0) ? (1000 / mspf) : 0;
+    
+    // Draw every frame using the smoothed values
     pb_erase_text_screen();
-    pb_print("   %dx%d | %d.%d mspf | %d.%d msbf | %d/%d MiB Free",
+    pb_fill(0, 20, g_width, 25, 0x00000000); // x, y, w, h, ARGB
+    pb_print("%dx%d | %d FPS | %d.%d mspf | %d.%d msbf | %d/%d MiB Free",
         g_width, g_height,
-        uspf/1000, uspf%1000/100,
-        usbf/1000, usbf%1000/100,
+        fps,
+        avg_uspf/1000, (avg_uspf%1000)/100,
+        avg_usbf/1000, (avg_usbf%1000)/100,
         mem_stats.AvailablePages >> 8, mem_stats.TotalPhysicalPages >> 8);
     pb_draw_text_screen();
 #endif
