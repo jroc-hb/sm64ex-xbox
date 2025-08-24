@@ -7,14 +7,14 @@ This is a port of **Super Mario 64 EX** for the **Original Xbox**.
 What I did was fix the issues that prevented it from compiling on modern **NXDK**, and then migrated the code over to **Super Mario 64 EX** (a more enhanced and mod-compatible Mario 64 PC port).
 
 ## How to build:
--Install and set up NXDK https://github.com/XboxDev/nxdk
--I personally use WSL Ubuntu 22.04.5 on Windows 11 for NXDK stuf
--Clone this repo
--Place a Super Mario 64 ROM called baserom.<VERSION>.z64 into the repository's root directory for asset extraction, where VERSION can be us, jp, or eu
--Open a terminal and run the NXDK activation script (./nxdk/bin/activate)
--Run `make TARGET_XBOX=1 -jX` where x is the number of CPU threads you want to use (or leave the flag out)
--You should end up with `sm64ex.iso` in the root folder and a `default.xbe` in the `bin` folder
--Either burn `sm64ex.iso` to a DVD (or load in XEMU) or copy `default.xbe` to your Xbox HDD
+- Install and set up NXDK https://github.com/XboxDev/nxdk
+- I personally use WSL Ubuntu 22.04.5 on Windows 11 for NXDK stuf
+- Clone this repo
+- Place a Super Mario 64 ROM called baserom.<VERSION>.z64 into the repository's root directory for asset extraction, where VERSION can be us, jp, or eu
+- Open a terminal and run the NXDK activation script (./nxdk/bin/activate)
+- Run `make TARGET_XBOX=1 -jX` where x is the number of CPU threads you want to use (or leave the flag out)
+- You should end up with `sm64ex.iso` in the root folder and a `default.xbe` in the `bin` folder
+- Either burn `sm64ex.iso` to a DVD (or load in XEMU) or copy `default.xbe` to your Xbox HDD
 
 ## Credits
 - [mborgerson](https://github.com/mborgerson) — Original Xbox port/renderer work  
