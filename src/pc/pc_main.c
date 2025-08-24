@@ -45,6 +45,7 @@
 #include <hal/video.h>
 #include <windows.h>
 #include <nxdk/mount.h>
+#include "xbox.h"
 #endif
 
 OSMesg D_80339BEC;
@@ -284,6 +285,8 @@ int main(int argc, char *argv[]) {
     if (!nxIsDriveMounted('E')) {
         nxMountDrive('E', "\\Device\\Harddisk0\\Partition1\\");
     }
+    CreateDirectoryA(USER_DATA_TITLE_PATH, NULL);
+    CreateDirectoryA(USER_DATA_SAVE_PATH, NULL);
     #endif
     parse_cli_opts(argc, argv);
     main_func();
