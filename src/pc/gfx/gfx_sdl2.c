@@ -181,7 +181,7 @@ static void gfx_sdl_init(const char *window_title) {
 
     perf_freq = SDL_GetPerformanceFrequency();
 
-    frame_rate = perf_freq / FRAMERATE;
+    frame_rate = perf_freq / (2 * FRAMERATE);
     frame_time = SDL_GetPerformanceCounter();
 
     for (size_t i = 0; i < sizeof(windows_scancode_table) / sizeof(SDL_Scancode); i++) {

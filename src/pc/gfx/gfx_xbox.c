@@ -31,7 +31,6 @@
 #define NV2A_VERTEX_ATTR_SPECULAR       4
 #define NV2A_VERTEX_ATTR_TEXTURE0       9
 #define NV2A_VERTEX_ATTR_TEXTURE1       10
-#define NV097_SET_SPECULAR_ENABLE 0x000003b8
 #define MAX_Z 16777215.0
 #define MAXRAM 0x03FFAFFF
 
@@ -233,11 +232,10 @@ static struct timespec gfx_xbox_wm_timeadd(
 
 static void gfx_xbox_wm_swap_buffers_end(void)
 {
-    // A naive sync up to run at 30Hz by measuring against the 60Hz native
-    // vblank interval
+    // Sync to 60Hz (1 vblank = 1 frame at 60fps)
     static int last = 0;
     int now = pb_get_vbl_counter();
-    while ((now - last) < 2) {
+    while ((now - last) < 1) {
         now = pb_wait_for_vbl();
     }
     last = now;
@@ -249,6 +247,7 @@ static void gfx_xbox_wm_swap_buffers_end(void)
     last_ts = ts;
 #endif
 }
+
 
 static double gfx_xbox_wm_get_time(void)
 {
